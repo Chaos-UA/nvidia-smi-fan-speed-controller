@@ -117,15 +117,19 @@ public class FanController {
         FanControllerConfig.Step lowerStep = null;
         FanControllerConfig.Step upperStep = null;
 
-        for (FanControllerConfig.Step step : steps) {
+        for (int i= 0; i < steps.size(); i++) {
+            FanControllerConfig.Step step = steps.get(i);
             if (lowerStep == null) {
                 lowerStep = step;
                 upperStep = step;
             } else {
-                if (currentTemp > step.getTemp()) {
+                if (currentTemp >= step.getTemp()) {
                     lowerStep = step;
-                } else if (currentTemp <= step.getTemp()) {
-                    upperStep = step;
+                    if (i + 1 < steps.size()) {
+                        upperStep = steps.get(i + 1);
+                    } else {
+                        upperStep = step;
+                    }
                 }
             }
         }
