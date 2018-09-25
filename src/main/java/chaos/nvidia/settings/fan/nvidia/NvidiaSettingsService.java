@@ -50,6 +50,7 @@ public class NvidiaSettingsService {
         } else {
             Process process = Runtime.getRuntime().exec(cmd);
             LOGGER.info("Executed cmd: " + cmd);
+            process.destroy();
         }
     }
 
@@ -65,6 +66,7 @@ public class NvidiaSettingsService {
         Process process = Runtime.getRuntime().exec(cmd);
 
         String output = IOUtils.toString(process.getInputStream(), "UTF-8");
+        process.destroy();
 
         List<NvidiaAttributesDTO> result = parseNvidiaSettingsOutput(output);
         return result;
