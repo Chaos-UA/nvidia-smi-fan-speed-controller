@@ -35,6 +35,10 @@ public class NvidiaSettingsService {
 
     @SneakyThrows
     public void updateNvidiaSettings(List<NvidiaAttributesDTO> nvidiaAttributes) {
+        if (nvidiaAttributes.isEmpty()) {
+            return;
+        }
+
         String cmd = "nvidia-settings ";
 
         for (NvidiaAttributesDTO attributes : nvidiaAttributes) {
