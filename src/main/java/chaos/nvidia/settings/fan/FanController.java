@@ -45,7 +45,6 @@ public class FanController {
                 for (NvidiaAttributesDTO attributes : readAttributes) {
                     int resultFanSpeed = calculateFanSpeed(attributes);
                     if (resultFanSpeed == attributes.getGpuTargetFanSpeed()) {
-                        LOGGER.info("Skipping setting gpu{}, since fan speed {} is still the same", attributes.getGpuIndex(), attributes.getGpuTargetFanSpeed());
                         continue;
                     }
 
