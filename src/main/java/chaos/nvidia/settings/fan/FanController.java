@@ -2,6 +2,7 @@ package chaos.nvidia.settings.fan;
 
 import chaos.nvidia.settings.fan.nvidia.NvidiaAttributesDTO;
 import chaos.nvidia.settings.fan.nvidia.NvidiaSettingsService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
 import lombok.NonNull;
 import org.slf4j.Logger;
@@ -25,6 +26,9 @@ public class FanController {
     @Autowired
     private NvidiaSettingsService nvidiaSettingsService;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @PostConstruct
     public void init() {
         Runtime.getRuntime().addShutdownHook(new Thread(this::restoreDefault));
@@ -34,7 +38,7 @@ public class FanController {
         while (true) {
             try {
                 List<NvidiaAttributesDTO> readAttributes = nvidiaSettingsService.getSettings();
-                LOGGER.info("Read attributes: " + readAttributes);
+                LOGGER.info("Read attributes: " + objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(readAttributes));
 
                 List<NvidiaAttributesDTO> attributesToUpdate = new ArrayList<>();
 
@@ -52,6 +56,7 @@ public class FanController {
                     attributesToUpdate.add(nvidiaAttributes);
                 }
 
+                LOGGER.info("Modified attributes: " + objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(attributesToUpdate));
                 nvidiaSettingsService.updateNvidiaSettings(attributesToUpdate);
 
                 Thread.sleep(fanControllerConfig.getIntervalSec() * 1000);
