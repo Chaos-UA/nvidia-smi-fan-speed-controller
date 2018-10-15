@@ -5,6 +5,7 @@ import chaos.nvidia.settings.fan.nvidia.NvidiaSettingsService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.ToString;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +28,9 @@ public class FanController {
     private NvidiaSettingsService nvidiaSettingsService;
 
     @Autowired
+    private IntellijFanAdjuster intellijFanAdjuster;
+
+    @Autowired
     private ObjectMapper objectMapper;
 
     @PostConstruct
@@ -44,6 +48,7 @@ public class FanController {
 
                 for (NvidiaAttributesDTO attributes : readAttributes) {
                     int resultFanSpeed = calculateFanSpeed(attributes);
+                    resultFanSpeed = intellijFanAdjuster.calculateFanSpeed(resultFanSpeed, attributes);
                     if (resultFanSpeed == attributes.getGpuTargetFanSpeed()) {
                         continue;
                     }
@@ -80,6 +85,10 @@ public class FanController {
         }
 
         StepRange stepRange = getStepRange(currentTemp, fanControllerConfig.getSteps());
+
+        if (stepRange.getLowerStep().getTemp().equals(stepRange.getUpperStep().getTemp())) {
+            return stepRange.getUpperStep().getFanSpeed();
+        }
 
         double result = (currentTemp - stepRange.getLowerStep().getTemp())
                 * (double) (stepRange.getUpperStep().getFanSpeed() - stepRange.getLowerStep().getFanSpeed())
@@ -146,6 +155,7 @@ public class FanController {
     }
 
     @Getter
+    @ToString
     private static class StepRange {
         @NonNull
         private final FanControllerConfig.Step lowerStep;
