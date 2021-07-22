@@ -55,6 +55,7 @@ public class FanController {
 
                     NvidiaAttributesDTO nvidiaAttributes = new NvidiaAttributesDTO();
                     nvidiaAttributes.setGpuIndex(attributes.getGpuIndex());
+                    nvidiaAttributes.setFanIndex(attributes.getFanIndex());
                     nvidiaAttributes.setGpuTargetFanSpeed(resultFanSpeed);
 
                     if (fanControllerConfig.isForceManualControl()) {

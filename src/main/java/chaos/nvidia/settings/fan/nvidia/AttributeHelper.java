@@ -19,7 +19,7 @@ public class AttributeHelper {
             if (attribute == null) {
                 continue;
             }
-            boolean isFanAttribute = "GPUTargetFanSpeed".equals(attribute.value());
+            boolean isFanAttribute = attribute.value().contains("GPUTargetFanSpeed");
             int index = isFanAttribute ? nvidiaSettings.getFanIndex() : nvidiaSettings.getGpuIndex();
             String settingAttribute = String.format(attribute.value(), index);
             field.setAccessible(true);
