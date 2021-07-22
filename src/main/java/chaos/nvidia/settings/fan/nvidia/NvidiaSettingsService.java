@@ -88,10 +88,6 @@ public class NvidiaSettingsService {
                 int value = Integer.valueOf(matcher.group(3));
                 boolean isFanAttribute = "GPUTargetFanSpeed".equals(attributeName);
                 GpuInfo gpuInfo = fanGpuMap.get(index);
-                if (gpuInfo.getFanIndexes().size() > 1) {
-                    LOGGER.warn("Multiple fans not supported yet. Skipping: {}", gpuInfo);
-                    continue;
-                }
                 final int gpuIndex = isFanAttribute ? gpuInfo.getIndex() : index;
 
                 NvidiaAttributesDTO attributes = resultMap.computeIfAbsent(gpuIndex, (key) -> {
@@ -109,6 +105,10 @@ public class NvidiaSettingsService {
         }
 
         List<NvidiaAttributesDTO> result = new ArrayList<>(resultMap.values());
+
+        // multiple fans not supported yet, so remove
+        result.removeIf(v -> fanGpuMap.get(v.getFanIndex()).getFanIndexes().size() > 1);
+
         if (!fanControllerConfig.isForceManualControl()) {
             result.removeIf(v -> v.getGpuFanControlState() != 1);
         } else {
