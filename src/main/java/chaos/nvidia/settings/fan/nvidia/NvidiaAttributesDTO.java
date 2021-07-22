@@ -10,6 +10,7 @@ import lombok.ToString;
 public class NvidiaAttributesDTO {
 
     private Integer gpuIndex;
+    private Integer fanIndex;
     // [gpu:0]/GPUFanControlState=1
     @Attribute("[gpu:%s]/GPUFanControlState")
     private Integer gpuFanControlState;

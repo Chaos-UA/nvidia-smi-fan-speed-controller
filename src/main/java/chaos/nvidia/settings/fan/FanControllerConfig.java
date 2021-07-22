@@ -21,6 +21,7 @@ public class FanControllerConfig {
     private int intervalSec;
     private boolean restoreDefaultOnExit;
     private boolean emulate;
+    private boolean forceManualControl;
     private List<Step> steps;
 
     @PostConstruct
@@ -72,6 +73,15 @@ public class FanControllerConfig {
     @Value("${fanController.emulate}")
     public void setEmulate(boolean emulate) {
         this.emulate = emulate;
+    }
+
+    public boolean isForceManualControl() {
+        return forceManualControl;
+    }
+
+    @Value("${fanController.forceManualControl}")
+    public void setForceManualControl(boolean forceManualControl) {
+        this.forceManualControl = forceManualControl;
     }
 
     public List<Step> getSteps() {

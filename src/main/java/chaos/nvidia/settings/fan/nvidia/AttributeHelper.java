@@ -19,17 +19,14 @@ public class AttributeHelper {
             if (attribute == null) {
                 continue;
             }
-
-            String settingAttribute = String.format(attribute.value(), nvidiaSettings.getGpuIndex());
+            boolean isFanAttribute = "GPUTargetFanSpeed".equals(attribute.value());
+            int index = isFanAttribute ? nvidiaSettings.getFanIndex() : nvidiaSettings.getGpuIndex();
+            String settingAttribute = String.format(attribute.value(), index);
             field.setAccessible(true);
             Integer value = (Integer) field.get(nvidiaSettings);
 
             if (value == null) {
                 continue;
-            }
-
-            if (nvidiaSettings.getGpuIndex() == null) {
-                throw new NullPointerException(String.format("gpu index %s is null", nvidiaSettings.getGpuIndex()));
             }
 
             result.append(String.format(" -a %s=%s ", settingAttribute, value));

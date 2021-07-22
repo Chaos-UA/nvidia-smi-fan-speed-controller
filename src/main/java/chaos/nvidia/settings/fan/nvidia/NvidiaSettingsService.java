@@ -12,9 +12,12 @@ import org.springframework.stereotype.Service;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -64,14 +67,15 @@ public class NvidiaSettingsService {
 
         Process process = Runtime.getRuntime().exec(cmd);
 
+        Map<Integer, GpuInfo> fanGpuMap = getFanGpuMap();
+
         String output = IOUtils.toString(process.getInputStream(), "UTF-8");
 
-        List<NvidiaAttributesDTO> result = parseNvidiaSettingsOutput(output);
+        List<NvidiaAttributesDTO> result = parseNvidiaSettingsOutput(fanGpuMap, output);
         return result;
     }
 
-    private List<NvidiaAttributesDTO> parseNvidiaSettingsOutput(String output) {
-
+    private List<NvidiaAttributesDTO> parseNvidiaSettingsOutput(Map<Integer, GpuInfo> fanGpuMap, String output) {
         Map<Integer, NvidiaAttributesDTO> resultMap = new LinkedHashMap<>();
 
         String[] outputLines = output.split("\n");
@@ -80,8 +84,10 @@ public class NvidiaSettingsService {
             Matcher matcher = READ_ATTRIBUTE_PATTERN.matcher(line);
             if (matcher.find()) {
                 String attributeName = matcher.group(1);
-                int gpuIndex = Integer.valueOf(matcher.group(2));
+                int index = Integer.valueOf(matcher.group(2));
                 int value = Integer.valueOf(matcher.group(3));
+                boolean isFanAttribute = "GPUTargetFanSpeed".equals(attributeName);
+                final int gpuIndex = isFanAttribute ? fanGpuMap.get(index).getIndex() : index;
 
                 NvidiaAttributesDTO attributes = resultMap.computeIfAbsent(gpuIndex, (key) -> {
                     NvidiaAttributesDTO nvidiaAttributes = new NvidiaAttributesDTO();
@@ -89,13 +95,20 @@ public class NvidiaSettingsService {
                     return nvidiaAttributes;
                 });
 
+                if (isFanAttribute) {
+                    attributes.setFanIndex(index);
+                }
+
                 setAttributeValue(attributeName, value, attributes);
             }
         }
 
-        List<NvidiaAttributesDTO> result =  new ArrayList<>(resultMap.values());
+        List<NvidiaAttributesDTO> result = new ArrayList<>(resultMap.values());
+        if (!fanControllerConfig.isForceManualControl()) {
+            result.removeIf(v -> v.getGpuFanControlState() != 1);
+        }
 
-        validateThatAllFieldsSet(result);
+        validateThatAllFieldsSet(result, output);
 
         return result;
     }
@@ -113,12 +126,76 @@ public class NvidiaSettingsService {
         throw new RuntimeException(String.format("Failed to find the attribute: %s", attributeName));
     }
 
-    private void validateThatAllFieldsSet(List<NvidiaAttributesDTO> attributes) {
+    private void validateThatAllFieldsSet(List<NvidiaAttributesDTO> attributes, String output) {
         for (NvidiaAttributesDTO attribute : attributes) {
             if (attribute.getGpuIndex() == null || attribute.getGpuCoreTemp() == null
                     || attribute.getGpuFanControlState() == null || attribute.getGpuTargetFanSpeed() == null) {
-                throw new IllegalArgumentException("Some attributes are not set: " + attribute);
+                throw new IllegalArgumentException(String.format("Some attributes are not set: %s, result: %s",
+                        attribute, output));
             }
+        }
+    }
+
+    /**
+     * key is an fan index.
+     */
+    @SneakyThrows
+    private Map<Integer, GpuInfo> getFanGpuMap() {
+        String cmd = "nvidia-settings -q gpus --verbose";
+        Process process = Runtime.getRuntime().exec(cmd);
+        Map<Integer, GpuInfo> result = new LinkedHashMap<>();
+        String output = IOUtils.toString(process.getInputStream(), "UTF-8");
+
+        GpuInfo gpuInfo = null;
+        for (String line : output.split("\n")) {
+            Pattern pattern = Pattern.compile("gpu:(\\d)\\] \\(([\\w \\d-]+)");
+            Matcher matcher = pattern.matcher(line);
+            if (matcher.find()) {
+                gpuInfo = new GpuInfo();
+                gpuInfo.setFanIndexes(new LinkedHashSet<>());
+                gpuInfo.setIndex(Integer.parseInt(matcher.group(1)));
+                gpuInfo.setName(matcher.group(2));
+                continue;
+            }
+
+            pattern = Pattern.compile("\\[fan:(\\d)\\]");
+            matcher = pattern.matcher(line);
+            if (matcher.find()) {
+                int fanIndex = Integer.parseInt(matcher.group(1));
+                gpuInfo.getFanIndexes().add(fanIndex);
+                result.put(fanIndex, gpuInfo);
+            }
+        }
+        return result;
+    }
+
+    private static class GpuInfo {
+        private String name;
+        private Integer index;
+        private Set<Integer> fanIndexes;
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public Integer getIndex() {
+            return index;
+        }
+
+        public void setIndex(Integer index) {
+            this.index = index;
+        }
+
+        public Set<Integer> getFanIndexes() {
+            return fanIndexes;
+        }
+
+        public void setFanIndexes(Set<Integer> fanIndexes) {
+            this.fanIndexes = fanIndexes;
         }
     }
 }

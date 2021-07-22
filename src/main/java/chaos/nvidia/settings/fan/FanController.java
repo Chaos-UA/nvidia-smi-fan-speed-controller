@@ -55,8 +55,11 @@ public class FanController {
 
                     NvidiaAttributesDTO nvidiaAttributes = new NvidiaAttributesDTO();
                     nvidiaAttributes.setGpuIndex(attributes.getGpuIndex());
-                    nvidiaAttributes.setGpuFanControlState(1); // unlock fan control
                     nvidiaAttributes.setGpuTargetFanSpeed(resultFanSpeed);
+
+                    if (fanControllerConfig.isForceManualControl()) {
+                        nvidiaAttributes.setGpuFanControlState(1); // unlock fan control
+                    }
                     attributesToUpdate.add(nvidiaAttributes);
                 }
 
@@ -103,7 +106,7 @@ public class FanController {
     }
 
     private void restoreDefault() {
-        if (fanControllerConfig.isRestoreDefaultOnExit()) {
+        if (fanControllerConfig.isRestoreDefaultOnExit() && fanControllerConfig.isForceManualControl()) {
             try {
                 List<NvidiaAttributesDTO> readAttributes = nvidiaSettingsService.getSettings();
 
